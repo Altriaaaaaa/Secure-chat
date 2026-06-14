@@ -1,0 +1,19 @@
+1.设计和实现一个安全的双向网络聊天程序，要求：
+（1）双向通信内容采用加密来保护（可以采用现成的加密函数库）。
+（2）开发语言不限。
+启动
+cd D:\Users\10489\Desktop\study\课程\计算机安全和保密技术\期末\chat
+python ws_server.py
+# 输出: WebSocket server: ws://127.0.0.1:5000
+python web_chat.py
+# 输出: Web聊天服务启动: http://127.0.0.1:5001
+
+篡改签名代码
+ws = new WebSocket("ws://127.0.0.1:5000")
+ws.onmessage = function(e){ console.log("Server:", e.data) }
+ws.onopen = function(){
+    ws.send(JSON.stringify({type:"msg",to:"user2",message:"QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVphYmNkZWZnaGprbG1ub3BxcnN0dXZ3eHl6MDEyMzQ1Njc4OQ==",time:Date.now()}))
+}
+
+ws.send(JSON.stringify({type:"msg",to:"用户B",message:"改过的Base64",time:Date.now()}))
+

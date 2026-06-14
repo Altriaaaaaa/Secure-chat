@@ -1,0 +1,13 @@
+﻿__pycache__/
+*.pyc
+*.bak
+data/users.json
+data/history.json
+data/groups.json
+*.png
+.env
+_fix*.py
+_gen*.py
+_patch.py
+_js.txt
+_write_html.py

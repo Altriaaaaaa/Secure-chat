@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Chat</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Segoe UI,sans-serif;background:#1a1a2e;display:flex;justify-content:center;align-items:center;height:100vh}
+.auth-box{width:360px;background:#16213e;border-radius:12px;padding:35px 30px;box-shadow:0 0 30px rgba(0,0,0,.5);text-align:center}
+.auth-box h2{color:#e94560;margin-bottom:6px}
+.auth-box .sub{color:#888;font-size:13px;margin-bottom:20px}
+.auth-box input{width:100%;padding:12px;border:none;border-radius:8px;background:#1a1a2e;color:#fff;font-size:14px;outline:none;margin-bottom:10px}
+.auth-box button{width:100%;padding:12px;border:none;border-radius:8px;background:#e94560;color:#fff;font-weight:bold;cursor:pointer;font-size:14px}
+.auth-box button:hover{background:#c73e54}
+.auth-box .switch{color:#888;font-size:13px;margin-top:12px}
+.auth-box .switch a{color:#4ecca3;cursor:pointer;text-decoration:underline}
+.auth-box .err{color:#e94560;font-size:13px;margin-top:8px}
+.main{display:none;width:900px;height:620px;background:#16213e;border-radius:12px;box-shadow:0 0 30px rgba(0,0,0,.5);flex-direction:row}
+.sidebar{width:230px;background:#0f3460;border-radius:12px 0 0 12px;display:flex;flex-direction:column}
+.sidebar .myinfo{padding:12px 14px;color:#e94560;font-weight:bold;border-bottom:1px solid #1a1a2e;display:flex;justify-content:space-between;align-items:center}
+.sidebar .myinfo .logout{color:#888;font-size:12px;cursor:pointer}
+.sidebar .search-box{padding:8px}
+.sidebar .search-box input{width:100%;padding:6px 8px;border:none;border-radius:4px;background:#1a1a2e;color:#fff;font-size:12px;outline:none}
+.sidebar .section-title{color:#4ecca3;font-size:11px;padding:10px 14px 4px;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+.sidebar .userlist{flex:1;overflow-y:auto;padding:0 8px}
+.sidebar .userlist .u{padding:8px 12px;color:#ccc;cursor:pointer;border-radius:6px;margin-bottom:2px;font-size:13px;display:flex;justify-content:space-between;align-items:center;position:relative}
+.sidebar .userlist .u:hover{background:#1a3a6e}
+.sidebar .userlist .u.active{background:#e94560;color:#fff}
+.sidebar .userlist .u .badge{background:#e94560;color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;display:none}
+.sidebar .userlist .u .del-btn{color:#e94560;font-size:14px;cursor:pointer;display:none;padding:0 4px}
+.sidebar .userlist .u:hover .del-btn{display:block}
+.sidebar .userlist .u .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.sidebar .userlist .u .dot.on{background:#4ecca3}
+.sidebar .userlist .u .dot.off{background:#666}
+.requests{max-height:120px;overflow-y:auto;padding:0 8px}
+.request-item{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;color:#ccc;font-size:12px;margin-bottom:2px}
+.request-item button{padding:3px 10px;border:none;border-radius:4px;background:#4ecca3;color:#1a1a2e;font-size:11px;cursor:pointer;font-weight:bold}
+.add-friend{display:flex;padding:8px;gap:4px;border-top:1px solid #1a1a2e}
+.add-friend input{flex:1;padding:6px 8px;border:none;border-radius:4px;background:#1a1a2e;color:#fff;font-size:12px;outline:none}
+.add-friend button{padding:6px 10px;border:none;border-radius:4px;background:#4ecca3;color:#1a1a2e;font-size:11px;cursor:pointer;font-weight:bold}
+.chat-area{flex:1;display:flex;flex-direction:column}
+.chat-area .chtop{padding:12px 14px;background:#0f3460;border-radius:0 12px 0 0;color:#e94560;font-weight:bold;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.chat-area .chtop .typing{color:#4ecca3;font-size:12px;font-weight:normal;font-style:italic;background:#1a3a6e;padding:2px 8px;border-radius:4px;margin-left:8px}
+.chat-area .chmsgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.chat-area .chinp{display:flex;padding:12px;gap:8px;align-items:center;background:#0f3460;border-radius:0 0 12px 0}
+.chat-area .chinp input[type=text]{flex:1;padding:10px;border:none;border-radius:8px;background:#1a1a2e;color:#fff;font-size:14px;outline:none}
+.msg{max-width:75%;padding:10px 14px;border-radius:10px;word-break:break-all;font-size:14px;position:relative}
+.msg.sent{align-self:flex-end;background:#e94560;color:#fff;border-bottom-right-radius:4px}
+.msg.recv{align-self:flex-start;background:#1a1a2e;color:#ccc;border-bottom-left-radius:4px}
+.msg.sys{align-self:center;color:#888;font-size:12px}
+.msg .lb{font-size:11px;opacity:.7;margin-bottom:4px}
+.msg .read{font-size:10px;color:#4ecca3;text-align:right;margin-top:2px}
+.msg img{max-width:280px;max-height:280px;border-radius:8px;margin-top:6px;object-fit:contain}
+.msg .fn{font-size:12px;color:#4ecca3;margin-top:4px}
+.msg a{color:#4ecca3;text-decoration:underline}
+.bs{padding:10px 16px;border:none;border-radius:8px;background:#e94560;color:#fff;font-weight:bold;cursor:pointer;font-size:13px}
+.bs:hover{background:#c73e54}
+.bf{padding:10px 14px;border:1px solid #4ecca3;border-radius:8px;background:#0f3460;color:#4ecca3;font-size:18px;cursor:pointer}
+.bf:hover{background:#1a3a6e}
+#fi{display:none}
+.pb{display:none;padding:6px 12px;background:#0a1628;color:#ccc;font-size:12px;align-items:center;gap:8px}
+.pb img{max-width:80px;max-height:50px;border-radius:4px;object-fit:cover}.pb .cx{color:#e94560;cursor:pointer;font-weight:bold;margin-left:auto}
+.st{color:#4ecca3;font-size:11px;padding:0 16px 4px}
+.search-results{max-height:200px;overflow-y:auto;padding:8px}
+.search-results .sr{padding:6px 10px;color:#ccc;font-size:12px;cursor:pointer;border-radius:4px;margin-bottom:2px}
+.search-results .sr:hover{background:#1a3a6e}
+.search-results .sr .sr-sender{color:#e94560;font-size:11px}
+</style>
+</head>
+<body>
+
+<div id="authPage" class="auth-box">
+    <h2 id="authTitle">Login</h2>
+    <div class="sub" id="authSub">Secure Chat</div>
+    <input id="authName" type="text" placeholder="Username">
+    <input id="authPass" type="password" placeholder="Password">
+    <button id="authBtn" onclick="doAuth()">Login</button>
+    <div class="switch"><a id="authSwitch" onclick="toggleAuth()">No account? Register</a></div>
+    <div id="authErr" class="err"></div>
+</div>
+
+<div id="mainPage" class="main" style="display:none">
+    <div class="sidebar">
+        <div class="myinfo"><span id="myName"></span><span class="logout" onclick="doLogout()">Logout</span></div>
+        <div class="search-box"><input id="searchInput" type="text" placeholder="Search messages..." oninput="searchMsgs()"></div>
+        <div class="search-results" id="searchResults" style="display:none"></div>
+        <div class="section-title">Friends <span id="onlineCount"></span></div>
+        <div class="userlist" id="friendList"></div>
+        <div class="section-title">Groups <span style="font-size:10px;cursor:pointer;color:#4ecca3" onclick="showCreateGroup()">+New</span></div>
+        <div class="userlist" id="groupList"></div>
+        <div id="createGroupBox" style="display:none;padding:4px 8px;display:none;gap:4px"><input id="groupNameInput" type="text" placeholder="Group name" style="flex:1;padding:4px 6px;border:none;border-radius:4px;background:#1a1a2e;color:#fff;font-size:12px;outline:none"><button onclick="createGroup()" style="padding:4px 8px;border:none;border-radius:4px;background:#4ecca3;color:#1a1a2e;font-size:11px;cursor:pointer">OK</button></div>
+        <div class="section-title" id="reqTitle" style="display:none">Requests</div>
+        <div class="requests" id="reqList"></div>
+        <div class="add-friend">
+            <input id="addFriendInput" type="text" placeholder="Add friend..." onkeydown="if(event.key==='Enter')addFriend()">
+            <button onclick="addFriend()">Add</button>
+        </div>
+    </div>
+    <div class="chat-area">
+        <div class="chtop"><span id="chatTarget">Select a friend</span><span class="typing" id="typingInd"></span></div>
+        <div id="groupAddBar" style="display:none;padding:4px 12px;background:#0a1628;gap:4px;align-items:center"><input id="groupAddInput" type="text" placeholder="Add member..." style="flex:1;padding:4px 6px;border:none;border-radius:4px;background:#1a1a2e;color:#fff;font-size:12px;outline:none" onkeydown="if(event.key==='Enter')addToGroup()"><button onclick="addToGroup()" style="padding:4px 8px;border:none;border-radius:4px;background:#4ecca3;color:#1a1a2e;font-size:11px;cursor:pointer">Add</button><span id="groupMembers" style="color:#888;font-size:11px;margin-left:8px"></span></div>
+        <div class="st" id="st"></div>
+        <div class="chmsgs" id="ms"></div>
+        <div class="pb" id="pb"><span id="pn"></span><span id="ps"></span><span class="cx" onclick="cf()">X</span></div>
+        <div class="chinp">
+            <input type="file" id="fi" onchange="ofs(this)" accept="image/*,video/*,audio/*,.pdf,.zip,.txt">
+            <button class="bf" onclick="document.getElementById('fi').click()">+</button>
+            <input id="ipt" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')sm()" oninput="onTyping()">
+            <button class="bs" onclick="sm()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+<script>
+var KEY=CryptoJS.enc.Utf8.parse("this_is_a_32byte_key_for_aes256!");var HMAC_KEY=CryptoJS.SHA256("this_is_a_32byte_key_for_aes256!_hmac_salt");
+var ws=null,myUsername="",chatTarget="",pf=null,authMode="login",loggedIn=false;
+var myFriends=[],onlineFriends=[],pendingRequests=[],myGroups=[],currentGroup="";
+var unreadCount={},typingTimers={},lastTypingSent=0,serverMsgs={};
+
+// ===== Notifications =====
+function notify(title,body){
+    if(!("Notification" in window))return;
+    if(Notification.permission==="granted"){new Notification(title,{body:body,icon:"data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="6" fill="#e94560"/><text x="16" y="22" text-anchor="middle" fill="white" font-size="18">&#x1f512;</text></svg>')});}
+    else if(Notification.permission!=="denied"){Notification.requestPermission();}
+}
+
+// ===== Auth =====
+function toggleAuth(){
+    if(authMode==="login"){authMode="register";document.getElementById("authTitle").textContent="Register";document.getElementById("authBtn").textContent="Register";document.getElementById("authSwitch").textContent="Have account? Login";document.getElementById("authSub").textContent="Create new account";}
+    else{authMode="login";document.getElementById("authTitle").textContent="Login";document.getElementById("authBtn").textContent="Login";document.getElementById("authSwitch").textContent="No account? Register";document.getElementById("authSub").textContent="Secure Chat";}
+}
+function doAuth(){
+    var n=document.getElementById("authName").value.trim(),p=document.getElementById("authPass").value;
+    if(!n||!p){document.getElementById("authErr").textContent="Fill all fields";return;}
+    document.getElementById("authErr").textContent="Connecting...";
+    if(Notification.permission==="default")Notification.requestPermission();
+    ws=new WebSocket("ws://127.0.0.1:5000");
+    ws.onopen=function(){try{var payload=CryptoJS.enc.Utf8.parse(JSON.stringify({username:n,password:p}));var encrypted=enc(payload);var b64=CryptoJS.enc.Base64.stringify(encrypted);ws.send(JSON.stringify({type:authMode,payload:b64}));}catch(e){document.getElementById("authErr").textContent="Encrypt error: "+e.message;ws.close();}};
+    ws.onmessage=function(e){
+        var d=JSON.parse(e.data);
+        if(d.type==="register_ok"){document.getElementById("authErr").textContent="Registered! Now login.";toggleAuth();if(ws)ws.close();}
+        else if(d.type==="login_ok"){myUsername=n;loggedIn=true;showMain(d);}
+        else if(d.type==="error"){
+            if(!loggedIn){document.getElementById("authErr").textContent=d.msg;if(ws){ws.close();ws=null;}}
+            else{am("","Error: "+d.msg,"sys");}
+        }
+        else if(loggedIn){
+            if(d.type==="friend_added")handleFriendAdded(d);
+            else if(d.type==="friend_request")handleFriendRequest(d);
+            else if(d.type==="request_sent")am("","Friend request sent to "+d.username,"sys");
+            else if(d.type==="friend_deleted")handleFriendDeleted(d);
+            else if(d.type==="msg")handleMsg(d);
+            else if(d.type==="file")handleFile(d);
+            else if(d.type==="kicked"){alert(d.msg);loggedIn=false;myUsername="";chatTarget="";if(ws){ws.close();ws=null;}document.getElementById("authPage").style.display="flex";document.getElementById("mainPage").style.display="none";document.getElementById("authErr").textContent=d.msg;}
+            else if(d.type==="group_msg")handleGroupMsg(d);
+            else if(d.type==="group_file")handleGroupFile(d);
+            else if(d.type==="group_created"){myGroups.push(d.group);renderGroups();selectGroup(d.group);}
+            else if(d.type==="group_update"){handleGroupUpdate(d);}
+            else if(d.type==="group_left"){myGroups=myGroups.filter(function(g){return g!==d.group;});renderGroups();if(currentGroup===d.group){currentGroup="";document.getElementById("chatTarget").textContent="Select a friend";document.getElementById("ms").innerHTML="";document.getElementById("groupAddBar").style.display="none";}}
+            else if(d.type==="system")am("",d.msg,"sys");
+            else if(d.type==="typing")handleTyping(d);
+            else if(d.type==="read_receipt")handleReadReceipt(d);
+        }
+    };
+    ws.onclose=function(){if(loggedIn)doLogout();else{document.getElementById("authErr").textContent="Disconnected";}};
+    ws.onerror=function(){document.getElementById("authErr").textContent="Connection failed";};
+}
+function doLogout(){loggedIn=false;myUsername="";chatTarget="";myFriends=[];onlineFriends=[];pendingRequests=[];unreadCount={};if(ws){ws.close();ws=null;}document.getElementById("authPage").style.display="flex";document.getElementById("mainPage").style.display="none";}
+
+// ===== Main UI =====
+function showMain(d){
+    document.getElementById("authPage").style.display="none";document.getElementById("mainPage").style.display="flex";
+    document.getElementById("myName").textContent=myUsername;
+    document.getElementById("ipt").addEventListener("input",onTyping);
+    
+    myFriends=d.friends||[];onlineFriends=d.online||[];pendingRequests=d.requests||[];myGroups=d.groups||[];
+    if(d.group_info){groupData={};for(var g in d.group_info)groupData[g]={members:d.group_info[g]};}
+    renderFriends();renderGroups();renderRequests();
+    if(d.history){serverMsgs={};d.history.forEach(function(m){var k=m.from===myUsername?m.to:m.from;if(!serverMsgs[k])serverMsgs[k]=[];serverMsgs[k].push(m);});var s={};d.history.forEach(function(m){if(m.type==="file"||m.type==="group_file")return;var k=m.from===myUsername?m.to:m.from;if(!s[k])s[k]=[];s[k].push(m);});for(var k in s)s[k]=s[k].slice(-50);
+    if(d.group_history){for(var g in d.group_history){var k="#"+g;if(!s[k])s[k]=[];d.group_history[g].forEach(function(m){s[k].push(m);});s[k]=s[k].slice(-50);}}
+    try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){console.warn("localStorage full, clearing old");try{localStorage.removeItem("chat_"+myUsername);localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e2){}}}
+}
+
+function renderFriends(){
+    var list=document.getElementById("friendList");list.innerHTML="";
+    myFriends.forEach(function(f){
+        var div=document.createElement("div");div.className="u"+(f===chatTarget?" active":"");
+        var online=onlineFriends.indexOf(f)>=0;
+        var unread=unreadCount[f]||0;
+        var badge=unread>0?'<span class="badge" style="display:inline">'+unread+'</span>':'<span class="badge"></span>';
+        div.innerHTML=(online?'<span class="dot on"></span>':'<span class="dot off"></span>')+'<span>'+f+'</span>'+badge+'<span class="del-btn" onclick="event.stopPropagation();deleteFriend(\''+f+'\')">&times;</span>';
+        div.onclick=function(){selectFriend(f);};
+        list.appendChild(div);
+    });
+    document.getElementById("onlineCount").textContent=onlineFriends.length+"/"+myFriends.length;
+}
+function showCreateGroup(){var b=document.getElementById("createGroupBox");b.style.display=b.style.display==="none"?"flex":"none";}
+function createGroup(){var n=document.getElementById("groupNameInput").value.trim();if(!n)return;ws.send(JSON.stringify({type:"create_group",name:n}));document.getElementById("groupNameInput").value="";document.getElementById("createGroupBox").style.display="none";}
+function renderGroups(){var list=document.getElementById("groupList");list.innerHTML="";myGroups.forEach(function(g){var div=document.createElement("div");div.className="u"+(g===currentGroup?" active":"");div.textContent="# "+g;div.onclick=function(){selectGroup(g);};list.appendChild(div);});}
+function selectGroup(g){
+    currentGroup=g;chatTarget="";
+    document.getElementById("groupAddBar").style.display="flex";document.getElementById("chatTarget").textContent="# "+g;document.getElementById("ms").innerHTML="";
+    var gdata=groupData[g];document.getElementById("groupMembers").textContent=gdata?gdata.members.length+" members":"";
+    var items=document.querySelectorAll(".userlist .u");items.forEach(function(el){el.classList.remove("active");});
+    // load group history from localStorage
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");
+    var msgs=s["#"+g]||[];
+    var seen={};msgs.forEach(function(m){var key=m.time+"|"+m.message;if(!seen[key]){seen[key]=1;replayOne(m);}});
+    document.getElementById("groupAddBar").style.display="flex";
+}
+function addToGroup(){if(!currentGroup)return;var n=document.getElementById("groupAddInput").value.trim();if(!n)return;ws.send(JSON.stringify({type:"add_to_group",group:currentGroup,username:n}));document.getElementById("groupAddInput").value="";}
+function handleGroupUpdate(d){if(groupData[d.group])groupData[d.group].members=d.members;if(d.group===currentGroup)document.getElementById("groupMembers").textContent=d.members.length+" members";}
+function renderRequests(){
+    var list=document.getElementById("reqList");list.innerHTML="";
+    var title=document.getElementById("reqTitle");
+    if(pendingRequests.length===0){title.style.display="none";return;}
+    title.style.display="block";
+    pendingRequests.forEach(function(r){var div=document.createElement("div");div.className="request-item";div.innerHTML='<span>'+r+'</span><button onclick="acceptFriend(\''+r+'\')">Accept</button>';list.appendChild(div);});
+}
+
+function selectFriend(f){
+    currentGroup="";chatTarget=f;
+    document.getElementById("groupAddBar").style.display="none";document.getElementById("chatTarget").textContent=f;document.getElementById("ms").innerHTML="";
+    document.getElementById("typingInd").textContent="";
+    unreadCount[f]=0;renderFriends();
+    // send read receipt
+    if(ws)ws.send(JSON.stringify({type:"read_receipt",to:f}));
+    var items=document.querySelectorAll(".userlist .u");items.forEach(function(el){el.classList.remove("active");});
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");var msgs=(s[f]||[]).concat(serverMsgs[f]||[]);
+    var seen={};msgs.forEach(function(m){var key=m.time+"|"+m.message;if(!seen[key]){seen[key]=1;replayOne(m);}});
+}
+function replayOne(m){
+    if(m.type==="file"||m.type==="group_file"){renderFile(m.from||m.to,m.message);return;}
+    if(m.type==="msg"||m.type==="group_msg"){var ru=w2u(dec(CryptoJS.enc.Base64.parse(m.message)));var rt=new TextDecoder().decode(ru.slice(7));var s=(m.from===myUsername)?"Me":m.from;var c=(m.from===myUsername)?"sent":"recv";am(s,rt,c,(m.from===myUsername&&m.read));}
+    
+    else if(m.type==="system"){am("",m.message,"sys");}
+}
+
+// ===== Typing Indicator =====
+function onTyping(){
+    if(!chatTarget||!ws)return;
+    var now=Date.now();
+    if(now-lastTypingSent<1500)return;
+    lastTypingSent=now;
+    ws.send(JSON.stringify({type:"typing",to:chatTarget}));
+}
+function handleTyping(d){
+    if(d.from!==chatTarget)return;
+    document.getElementById("typingInd").textContent="typing...";
+    clearTimeout(typingTimers[d.from]);
+    typingTimers[d.from]=setTimeout(function(){document.getElementById("typingInd").textContent="";},2000);
+}
+
+// ===== Read Receipt =====
+function handleReadReceipt(d){
+    // Mark sent messages to d.from as read in localStorage
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");
+    var msgs=s[d.from]||[];
+    msgs.forEach(function(m){if(m.from===myUsername&&m.to===d.from)m.read=true;});
+    try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}
+    if(d.from===chatTarget){
+        var els=document.querySelectorAll("#ms .msg.sent .read");
+        els.forEach(function(el){el.textContent="Read";});
+    }
+}
+
+// ===== Friend System =====
+function addFriend(){var name=document.getElementById("addFriendInput").value.trim();if(!name)return;document.getElementById("addFriendInput").value="";ws.send(JSON.stringify({type:"add_friend",username:name}));}
+function acceptFriend(name){ws.send(JSON.stringify({type:"accept_friend",username:name}));}
+function handleFriendAdded(d){
+    var name=d.username;
+    if(myFriends.indexOf(name)<0)myFriends.push(name);
+    if(d.friends)myFriends=d.friends;
+    if(d.online_friends)onlineFriends=d.online_friends;
+    pendingRequests=pendingRequests.filter(function(r){return myFriends.indexOf(r)<0;});
+    renderFriends();renderRequests();
+}
+function handleFriendRequest(d){pendingRequests=d.requests||[];renderRequests();}
+
+// ===== Delete Friend =====
+function deleteFriend(name){
+    if(!confirm("Delete "+name+" from friends?"))return;
+    ws.send(JSON.stringify({type:"delete_friend",username:name}));
+}
+function handleFriendDeleted(d){
+    myFriends=d.friends||[];
+    if(d.username===chatTarget){chatTarget="";document.getElementById("chatTarget").textContent="Select a friend";document.getElementById("ms").innerHTML="";}
+    renderFriends();
+}
+
+// ===== Search =====
+var allStoredMsgs={};
+function buildSearchIndex(){
+    allStoredMsgs={};
+    try{allStoredMsgs=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");}catch(e){}
+}
+function searchMsgs(){
+    var q=document.getElementById("searchInput").value.trim().toLowerCase();
+    var results=document.getElementById("searchResults");
+    if(!q){results.style.display="none";return;}
+    buildSearchIndex();
+    var found=[];
+    for(var k in allStoredMsgs){
+        var msgs=allStoredMsgs[k];
+        msgs.forEach(function(m,i){
+            if(m.type!=="msg")return;
+            try{
+                var ru=w2u(dec(CryptoJS.enc.Base64.parse(m.message)));
+                var rt=new TextDecoder().decode(ru.slice(7)).toLowerCase();
+                if(rt.indexOf(q)>=0)found.push({contact:k,text:rt.substring(0,60),idx:i,time:m.time,direction:m.from===myUsername?"\u2192":"\u2190"});
+            }catch(e){}
+        });
+    }
+    if(found.length===0){results.style.display="none";return;}
+    results.style.display="block";
+    results.innerHTML="";
+    found.slice(0,20).forEach(function(f){
+        var div=document.createElement("div");div.className="sr";
+        div.innerHTML='<span class="sr-sender">'+f.direction+' '+f.contact+'</span>: '+f.text+'...';
+        div.onclick=function(){selectFriend(f.contact);results.style.display="none";document.getElementById("searchInput").value="";};
+        results.appendChild(div);
+    });
+}
+
+// ===== Crypto =====
+function u2w(u8){var w=[];for(var i=0;i<u8.length;i++)w[i>>>2]|=u8[i]<<(24-(i%4)*8);return CryptoJS.lib.WordArray.create(w,u8.length);}
+function w2u(wa){var u8=new Uint8Array(wa.sigBytes);for(var i=0;i<wa.sigBytes;i++)u8[i]=(wa.words[i>>>2]>>>(24-(i%4)*8))&0xFF;return u8;}
+function enc(wa){var iv=CryptoJS.lib.WordArray.random(16);var e=CryptoJS.AES.encrypt(wa,KEY,{iv:iv,mode:CryptoJS.mode.CBC,padding:CryptoJS.pad.Pkcs7});var body=iv.concat(e.ciphertext);var sig=CryptoJS.HmacSHA256(body,HMAC_KEY);return body.concat(sig);}
+function dec(wa){if(wa.sigBytes<48){console.error("HMAC: data too short ("+wa.sigBytes+" bytes), old format?");alert("Message from old client - please refresh both users (Ctrl+F5)");return CryptoJS.lib.WordArray.create();}var sig=CryptoJS.lib.WordArray.create(wa.words.slice(-8));var body=CryptoJS.lib.WordArray.create(wa.words.slice(0,-8),wa.sigBytes-32);var expectedSig=CryptoJS.HmacSHA256(body,HMAC_KEY);if(expectedSig.toString()!==sig.toString()){console.error("HMAC mismatch");alert("HMAC verification failed - message tampered or key mismatch!");return CryptoJS.lib.WordArray.create();}var iv=CryptoJS.lib.WordArray.create(body.words.slice(0,4));var ct=CryptoJS.lib.WordArray.create(body.words.slice(4),body.sigBytes-16);return CryptoJS.AES.decrypt({ciphertext:ct},KEY,{iv:iv,mode:CryptoJS.mode.CBC,padding:CryptoJS.pad.Pkcs7});}
+function pk(t,d){var tw=CryptoJS.enc.Utf8.parse(t);var b=new ArrayBuffer(4);new DataView(b).setUint32(0,d.sigBytes,false);return tw.concat(CryptoJS.lib.WordArray.create(new Uint8Array(b))).concat(d);}
+function upk(wa){var u8=w2u(wa);var t=new TextDecoder().decode(u8.slice(0,3));var len=(u8[3]<<24)|(u8[4]<<16)|(u8[5]<<8)|u8[6];return{type:t,data:u8.slice(7,7+len)};}
+function pkf(fn,fu){var n=new TextEncoder().encode(fn);var buf=new Uint8Array(4+n.length+fu.length);new DataView(buf.buffer).setUint32(0,n.length,false);buf.set(n,4);buf.set(fu,4+n.length);return pk("FIL",u2w(buf));}
+
+// ===== Message Handling =====
+function handleMsg(d){
+    // Always save to localStorage
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");if(!s[d.from])s[d.from]=[];
+    s[d.from].push({from:d.from,to:myUsername,type:"msg",message:d.message,time:Date.now()});try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}
+    if(!chatTarget||d.from!==chatTarget){
+        unreadCount[d.from]=(unreadCount[d.from]||0)+1;
+        renderFriends();
+        notify(d.from,"New message from "+d.from);
+        return;
+    }
+    var ru=w2u(dec(CryptoJS.enc.Base64.parse(d.message)));var rt=new TextDecoder().decode(ru.slice(7));
+    am(d.from,rt,"recv");
+    if(ws)ws.send(JSON.stringify({type:"read_receipt",to:d.from}));
+}
+function handleFile(d){
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");if(!s[d.from])s[d.from]=[];
+    try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}
+    if(!chatTarget||d.from!==chatTarget){
+        unreadCount[d.from]=(unreadCount[d.from]||0)+1;renderFriends();
+        notify(d.from,"New file from "+d.from);
+        return;
+    }
+    renderFile(d.from,d.message);
+}
+function renderFile(sender,b64,isMe){
+    var u=upk(dec(CryptoJS.enc.Base64.parse(b64)));var du8=u.data;
+    var nameLen=new DataView(du8.buffer,du8.byteOffset,4).getUint32(0,false);
+    var fname=new TextDecoder().decode(du8.slice(4,4+nameLen));var fdata=du8.slice(4+nameLen);
+    var blob=new Blob([fdata],{type:gm(fname)});var url=URL.createObjectURL(blob);
+    var label=isMe?"Me":sender;var cls=isMe?"sent":"recv";
+    if(blob.type.startsWith("image/")){am(label,fname,cls);var last=document.querySelector("#ms .msg:last-child");if(last){last.innerHTML+='<br><img src="'+url+'">';last.innerHTML+='<div class="fn">'+fname+' ('+fs(fdata.length)+')</div>';}}
+    else{var a=document.createElement("a");a.href=url;a.download=fname;a.textContent="Download "+fname+" ("+fs(fdata.length)+")";a.style.color="#4ecca3";am(label,"",cls);var last2=document.querySelector("#ms .msg:last-child");if(last2)last2.appendChild(a);}
+}
+
+// ===== Send =====
+function sm(){if(!chatTarget){alert("Select a friend");return;}var t=document.getElementById("ipt").value.trim();if(pf){sfm(t||pf.name);return;}if(!t)return;stm(t);}
+function stm(t){document.getElementById("ipt").value="";am("Me",t,"sent",false);var b64=CryptoJS.enc.Base64.stringify(enc(pk("TXT",CryptoJS.enc.Utf8.parse(t))));ws.send(JSON.stringify({type:"msg",to:chatTarget,message:b64,time:Date.now()}));var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");if(!s[chatTarget])s[chatTarget]=[];s[chatTarget].push({from:myUsername,to:chatTarget,type:"msg",message:b64,time:Date.now(),read:false});try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}ss("Sent");}
+function sfm(desc){var f=pf;if(f.type.startsWith("image/")){var url=URL.createObjectURL(new Blob([f.data],{type:f.type}));am("Me",desc||f.name,"sent",false);var last=document.querySelector("#ms .msg:last-child");if(last){last.innerHTML+='<br><img src="'+url+'">';last.innerHTML+='<div class="fn">'+f.name+' ('+fs(f.size)+')</div>';}}else{am("Me","File: "+(desc||f.name)+" ("+fs(f.size)+")","sent",false);}cf();var b64=CryptoJS.enc.Base64.stringify(enc(pkf(f.name,f.data)));ws.send(JSON.stringify({type:"msg",to:chatTarget,message:b64,time:Date.now()}));var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");if(!s[chatTarget])s[chatTarget]=[];try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}ss("File sent");}
+function ofs(inp){var f=inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){pf={name:f.name,data:new Uint8Array(e.target.result),size:f.size,type:f.type};document.getElementById("pn").textContent=f.name;document.getElementById("ps").textContent=fs(f.size);document.getElementById("pb").style.display="flex";if(f.type.startsWith("image/")){var img=document.createElement("img");img.src=URL.createObjectURL(f);var bar=document.getElementById("pb");var old=bar.querySelector("img");if(old)old.remove();bar.insertBefore(img,bar.firstChild);}};r.readAsArrayBuffer(f);inp.value="";}
+function cf(){pf=null;document.getElementById("pb").style.display="none";}
+function fs(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB";}
+function gm(e){var m={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",webp:"image/webp",mp4:"video/mp4",mp3:"audio/mpeg",pdf:"application/pdf",zip:"application/zip"};var ext=e.split(".").pop().toLowerCase();return m[ext]||"application/octet-stream";}
+function am(sender,html,cls,read){var d=document.createElement("div");d.className="msg "+cls;var inner='';if(sender)inner+='<div class="lb">'+sender+'</div>';inner+=html;inner+='<div class="read">'+(read?'Read':'')+'</div>';d.innerHTML=inner;var m=document.getElementById("ms");m.appendChild(d);m.scrollTop=m.scrollHeight;}
+var groupData={};
+function handleGroupMsg(d){
+    // always save
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");
+    var k="#"+d.group;if(!s[k])s[k]=[];
+    s[k].push({from:d.from,to:"",type:"msg",message:d.message,time:Date.now()});
+    try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}
+    if(d.group!==currentGroup)return;
+    var ru=w2u(dec(CryptoJS.enc.Base64.parse(d.message)));var rt=new TextDecoder().decode(ru.slice(7));
+    am(d.from,rt,"recv");
+}
+function handleGroupFile(d){
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");
+    var k="#"+d.group;if(!s[k])s[k]=[];
+    s[k].push({from:d.from,to:"",type:"file",message:d.message,time:Date.now()});
+    try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}
+    if(d.group!==currentGroup)return;
+    renderFile(d.from,d.message);
+}
+// Override sm() for groups
+var _orig_sm=sm;
+sm=function(){
+    if(currentGroup){
+        var t=document.getElementById("ipt").value.trim();
+        if(pf){sfm_group(t||pf.name);return;}
+        if(!t)return;stm_group(t);
+        return;
+    }
+    _orig_sm();
+};
+function stm_group(t){
+    document.getElementById("ipt").value="";am("Me",t,"sent",false);
+    var b64=CryptoJS.enc.Base64.stringify(enc(pk("TXT",CryptoJS.enc.Utf8.parse(t))));
+    ws.send(JSON.stringify({type:"group_msg",group:currentGroup,message:b64,time:Date.now()}));
+    var s=JSON.parse(localStorage.getItem("chat_"+myUsername)||"{}");
+    var k="#"+currentGroup;if(!s[k])s[k]=[];
+    s[k].push({from:myUsername,to:"",type:"msg",message:b64,time:Date.now(),read:false});
+    try{localStorage.setItem("chat_"+myUsername,JSON.stringify(s));}catch(e){}
+    ss("Sent");
+}
+function sfm_group(desc){
+    var f=pf;am("Me","File: "+(desc||f.name)+" ("+fs(f.size)+")","sent",false);cf();
+    var b64=CryptoJS.enc.Base64.stringify(enc(pkf(f.name,f.data)));
+    ws.send(JSON.stringify({type:"group_msg",group:currentGroup,message:b64,time:Date.now()}));
+    ss("File sent");
+}
+// Also patch handleMsg to show group support
+function ss(t){document.getElementById("st").textContent=t;}
+</script>
+</body>
+</html>
